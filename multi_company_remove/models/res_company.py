@@ -121,9 +121,44 @@ def delete_company_rows(
     cr.execute(statement, (company_id,))
 
 
-
 class ResCompany(models.Model):
     _inherit = 'res.company'
+
+    @api.multi
+    def move_users(self, remaining_company):
+        cr = self.env.cr
+        # Change users now working in companies to be deleted:
+        _logger.debug(
+            _("Users will be transferred to company %d"),
+            remaining_company.id
+        )
+        # If user needs to be transferred (present company is to be deleted),
+        # and user has no rights for remaining company yet, add access to
+        # remaning company (another valid choice might have been to delete
+        # the user):
+        statement = """\
+            UPDATE res_users
+            SET company_id = %s
+            WHERE company_id IN %s
+        """
+        cr.execute(statement, (remaining_company.id, self.ids))
+        user_model = self.env['res.users']
+        users_to_change = user_model.search([
+            ('company_id', 'in', self.ids),
+        ])
+        if users_to_change:
+            for user in users_to_change:
+                if remaining_company.id not in user.company_ids.ids:
+                    user.write({'company_ids': [(4, remaining_company.id)]})
+            users_to_change.write({'company_id': remaining_company.id})
+        # No partner if it is a user should belong to company to be deleted:
+        users_to_change = user_model.search([])
+        for user in users_to_change:
+            if user.partner_id.company_id and \
+                    user.partner_id.company_id.id in self.ids:
+                user.partner_id.write({
+                    'company_id': remaining_company.id,
+                })
 
     @api.multi
     def unlink(self):
@@ -134,34 +169,13 @@ class ResCompany(models.Model):
         """
         cr = self.env.cr
         # Check wether at least one company remains
-        remaining_company = self.search([('id', 'not in', self.ids)])
-        if not remaining_company:
+        remaining_companies = self.search([('id', 'not in', self.ids)])
+        if not remaining_companies:
             raise ValidationError(_(
                 "At least one company should remain!"
             ))
-        remaining_company_id = remaining_company[0].id
-        # Change users now working in companies to be deleted:
-        _logger.debug(
-            _("Users will be transferred to company %d"), remaining_company_id
-        )
-        user_model = self.env['res.users']
-        users_to_change = user_model.search([
-            ('company_id', 'in', self.ids)
-        ])
-        if users_to_change:
-            for user in users_to_change:
-                if remaining_company_id not in user.company_ids.ids:
-                    user.write({'company_ids': [(4, remaining_company_id)]})
-            users_to_change.write({'company_id': remaining_company_id})
-        # No partner if it is a user should belong to company to be deleted:
-        users_to_change = user_model.search([])
-        for user in users_to_change:
-            if user.partner_id.company_id and \
-                    user.partner_id.company_id.id in self.ids:
-                user.partner_id.write({
-                    'company_id': remaining_company_id,
-                })
-        # Update  
+        self.move_users(remaining_companies[0])
+        # Update
         do_prepurge(cr)
         for this in self:
             for tablename in COMPANY_TABLES:
