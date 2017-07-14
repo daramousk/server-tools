@@ -147,16 +147,29 @@ class ResCompany(models.Model):
         # and they are connected with the remaining_company
         # move them to the remaining_company.
         # and change their partner_id.company_id to remaining_company
-        statement_move_users = """
-        UPDATE res_users SET company_id = %s FROM res_partner
-        WHERE res_users.id IN 
-            (SELECT id FROM res_users
+        statement_select_users = """
+        SELECT id FROM res_users
             INNER JOIN res_company_users_rel ON res_users.id = res_company_users_rel.user_id
-            WHERE res_users.company_id in %s AND
-            res_company_users_rel.cid = %s)
+            WHERE res_users.company_id=ANY(%s) AND
+            res_company_users_rel.cid = %s
         """
-        cr.execute(statement_move_users, (remaining_company.id, tuple(self.ids),
-                                          remaining_company.id))
+        cr.execute(statement_select_users, (self.ids,
+                                            remaining_company.id))   
+        select_results = cr.fetchall()
+        statement_update_users = """
+        UPDATE res_users SET company_id = %s
+        WHERE res_users.id=ANY(%s)
+        """
+        cr.execute(statement_update_users, (remaining_company.id,
+                                            select_results))
+        statement_update_partners = """
+        UPDATE res_partner SET company_id = %s WHERE id = (
+        SELECT res_users.partner_id FROM res_partner
+        INNER JOIN res_users ON res_users.partner_id = res_partner.id
+        WHERE res_users.id = ANY(%s))
+        """
+        cr.execute(statement_update_partners, (remaining_company.id,
+                                          select_results))
 
     @api.multi
     def unlink(self):
