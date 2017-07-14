@@ -118,6 +118,7 @@ def delete_company_rows(
         tablename,
         "DELETE FROM %s WHERE %s =" % (tablename, fieldname) + ' %s'
     )
+    print statement
     cr.execute(statement, (company_id,))
 
 
@@ -141,24 +142,22 @@ class ResCompany(models.Model):
             SET company_id = %s
             WHERE company_id IN %s
         """
-        cr.execute(statement, (remaining_company.id, self.ids))
-        user_model = self.env['res.users']
-        users_to_change = user_model.search([
-            ('company_id', 'in', self.ids),
-        ])
-        if users_to_change:
-            for user in users_to_change:
-                if remaining_company.id not in user.company_ids.ids:
-                    user.write({'company_ids': [(4, remaining_company.id)]})
-            users_to_change.write({'company_id': remaining_company.id})
-        # No partner if it is a user should belong to company to be deleted:
-        users_to_change = user_model.search([])
-        for user in users_to_change:
-            if user.partner_id.company_id and \
-                    user.partner_id.company_id.id in self.ids:
-                user.partner_id.write({
-                    'company_id': remaining_company.id,
-                })
+        cr.execute(statement, (remaining_company.id, tuple(self.ids)))
+
+        # select the users that belong in in the current company
+        # and they are connected with the remaining_company
+        # move them to the remaining_company.
+        # and change their partner_id.company_id to remaining_company
+        statement_move_users = """
+        UPDATE res_users SET company_id = %s FROM res_partner
+        WHERE res_users.id IN 
+            (SELECT id FROM res_users
+            INNER JOIN res_company_users_rel ON res_users.id = res_company_users_rel.user_id
+            WHERE res_users.company_id in %s AND
+            res_company_users_rel.cid = %s)
+        """
+        cr.execute(statement_move_users, (remaining_company.id, tuple(self.ids),
+                                          remaining_company.id))
 
     @api.multi
     def unlink(self):
