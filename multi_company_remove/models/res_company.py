@@ -85,7 +85,7 @@ DELETE_COMMANDS = {
         ' (select id from account_bank_statement where company_id = %s)',
     'res_partner':
         'delete from res_partner where company_id = %s and id not in'
-        ' (select partner_id from res_company)',
+        ' (select partner_id from res_company) and user_id = NULL',
 }
 
 
@@ -118,7 +118,6 @@ def delete_company_rows(
         tablename,
         "DELETE FROM %s WHERE %s =" % (tablename, fieldname) + ' %s'
     )
-    print statement
     cr.execute(statement, (company_id,))
 
 
