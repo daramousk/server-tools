@@ -85,7 +85,7 @@ DELETE_COMMANDS = {
         ' (select id from account_bank_statement where company_id = %s)',
     'res_partner':
         'delete from res_partner where company_id = %s and id not in'
-        ' (select partner_id from res_company) and user_id = NULL',
+        ' (select partner_id from res_company) and user_id IS NULL',
 }
 
 
@@ -132,29 +132,15 @@ class ResCompany(models.Model):
             _("Users will be transferred to company %d"),
             remaining_company.id
         )
-        # If user needs to be transferred (present company is to be deleted),
-        # and user has no rights for remaining company yet, add access to
-        # remaning company (another valid choice might have been to delete
-        # the user):
-        statement = """\
-            UPDATE res_users
-            SET company_id = %s
-            WHERE company_id IN %s
-        """
-        cr.execute(statement, (remaining_company.id, tuple(self.ids)))
 
         # select the users that belong in in the current company
         # and they are connected with the remaining_company
         # move them to the remaining_company.
         # and change their partner_id.company_id to remaining_company
         statement_select_users = """
-        SELECT id FROM res_users
-            INNER JOIN res_company_users_rel ON res_users.id = res_company_users_rel.user_id
-            WHERE res_users.company_id=ANY(%s) AND
-            res_company_users_rel.cid = %s
+        SELECT id FROM res_users WHERE company_id=ANY(%s)
         """
-        cr.execute(statement_select_users, (self.ids,
-                                            remaining_company.id))   
+        cr.execute(statement_select_users, (self.ids, ))   
         select_results = cr.fetchall()
         statement_update_users = """
         UPDATE res_users SET company_id = %s
@@ -162,6 +148,14 @@ class ResCompany(models.Model):
         """
         cr.execute(statement_update_users, (remaining_company.id,
                                             select_results))
+        # insert a connection between the user and the remaining company
+        for row in select_results:
+            statement_update_company_ids = """
+            INSERT INTO res_company_users_rel VALUES (%s, %s)
+            ON CONFLICT DO NOTHING
+            """
+            cr.execute(statement_update_company_ids, (remaining_company.id,
+                                                      row[0]))
         statement_update_partners = """
         UPDATE res_partner SET company_id = %s WHERE id = (
         SELECT res_users.partner_id FROM res_partner
