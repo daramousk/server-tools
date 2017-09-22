@@ -85,7 +85,8 @@ DELETE_COMMANDS = {
         ' (select id from account_bank_statement where company_id = %s)',
     'res_partner':
         'delete from res_partner where company_id = %s and id not in'
-        ' (select partner_id from res_company) and user_id IS NULL',
+        ' (select partner_id from res_company) and'
+        ' id not in (select partner_id from res_users)',
 }
 
 
@@ -149,11 +150,11 @@ class ResCompany(models.Model):
         cr.execute(statement_update_users, (remaining_company.id,
                                             select_results))
         # insert a connection between the user and the remaining company
-        for row in select_results:
-            statement_update_company_ids = """
+        statement_update_company_ids = """
             INSERT INTO res_company_users_rel VALUES (%s, %s)
             ON CONFLICT DO NOTHING
             """
+        for row in select_results:
             cr.execute(statement_update_company_ids, (remaining_company.id,
                                                       row[0]))
         statement_update_partners = """
