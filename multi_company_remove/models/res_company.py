@@ -158,7 +158,7 @@ class ResCompany(models.Model):
             cr.execute(statement_update_company_ids, (remaining_company.id,
                                                       row[0]))
         statement_update_partners = """
-        UPDATE res_partner SET company_id = %s WHERE id = (
+        UPDATE res_partner SET company_id = %s WHERE id = ANY(
         SELECT res_users.partner_id FROM res_partner
         INNER JOIN res_users ON res_users.partner_id = res_partner.id
         WHERE res_users.id = ANY(%s))
