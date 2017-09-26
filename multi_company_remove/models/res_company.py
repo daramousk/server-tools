@@ -39,6 +39,7 @@ COMPANY_TABLES = [
     'account_invoice',
     'account_move',
     'account_voucher',
+    'account_voucher_line',
     'account_analytic_account',
     'account_analytic_journal',
     'account_fiscal_position',
@@ -64,6 +65,10 @@ COMPANY_TABLES = [
 PRE_TABLE_COMMANDS = {
     'account_voucher': [
         'delete from account_voucher where account_id in '
+        ' (select id from account_account where company_id = %s)',
+    ],
+    'account_voucher_line': [
+        'delete from account_voucher_line where account_id in '
         ' (select id from account_account where company_id = %s)',
     ],
 }
