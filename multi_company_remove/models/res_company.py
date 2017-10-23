@@ -66,6 +66,8 @@ PRE_TABLE_COMMANDS = {
     'account_voucher': [
         'delete from account_voucher where account_id in '
         ' (select id from account_account where company_id = %s)',
+        'delete from account_voucher where journal_id in '
+        ' (select id from account_journal where company_id = %s)',
     ],
     'account_voucher_line': [
         'delete from account_voucher_line where account_id in '
