@@ -63,16 +63,30 @@ COMPANY_TABLES = [
 ]
 
 PRE_TABLE_COMMANDS = {
+    'mrp_bom': [
+        'delete from mrp_bom where company_id = %s',
+        ],
     'account_voucher': [
         'delete from account_voucher where account_id in '
         ' (select id from account_account where company_id = %s)',
         'delete from account_voucher where journal_id in '
         ' (select id from account_journal where company_id = %s)',
+        'delete from account_voucher where period_id in '
+        ' (select id from account_period where company_id = %s)',
     ],
     'account_voucher_line': [
         'delete from account_voucher_line where account_id in '
         ' (select id from account_account where company_id = %s)',
     ],
+    'account_invoice': [
+        'delete from account_invoice where move_id in '
+        ' (select id from account_move where company_id = %s)',
+        'delete from account_invoice where journal_id in '
+        ' (select id from account_journal where company_id = %s)',
+        ],
+    'sale_order': [
+        'delete from sale_order where partner_shipping_id in (select id from res_partner where company_id =  %s) ',
+        ],
 }
 
 DELETE_COMMANDS = {
