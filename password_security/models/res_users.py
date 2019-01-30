@@ -56,6 +56,8 @@ class ResUsers(models.Model):
             message.append('\n* ' + _('Numeric digit'))
         if company_id.password_special:
             message.append('\n* ' + _('Special character'))
+        if company_id.password_no_login:
+            message.append('\n* ' + _('Must not contain Login'))
         if message:
             message = [_('Must contain the following:')] + message
         if company_id.password_length:
@@ -88,6 +90,8 @@ class ResUsers(models.Model):
             password_regex.append(r'(?=.*?[\W_])')
         password_regex.append('.{%d,}$' % company_id.password_length)
         if not re.search(''.join(password_regex), password):
+            raise PassError(self.password_match_message())
+        if company_id.password_no_login and self.login in password:
             raise PassError(self.password_match_message())
         return True
 

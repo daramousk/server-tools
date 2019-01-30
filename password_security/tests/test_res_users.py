@@ -164,3 +164,10 @@ class TestResUsers(TransactionCase):
         self.assertTrue(self.main_comp.password_special)
         rec_id = self._new_record()
         rec_id._check_password('asdQWE12345_3')
+
+    def test_password_contains_login(self):
+        self.assertTrue(self.main_comp.password_no_login)
+        rec_id = self._new_record()
+        rec_id._check_password('asdQWE123$%^12')
+        with self.assertRaises(PassError):
+            rec_id._check_password(rec_id.login + 'invalid')
