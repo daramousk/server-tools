@@ -91,8 +91,9 @@ class ResUsers(models.Model):
         password_regex.append('.{%d,}$' % company_id.password_length)
         if not re.search(''.join(password_regex), password):
             raise PassError(self.password_match_message())
-        if company_id.password_no_login and self.login in password:
-            raise PassError(self.password_match_message())
+        if company_id.password_no_login:
+            if self.login.lower() in password.lower():
+                raise PassError(self.password_match_message())
         return True
 
     @api.multi
