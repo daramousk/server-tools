@@ -14,8 +14,9 @@ class ResUsers(models.Model):
         """
         self.env['ir.ui.view'].sudo().with_context(
             active_test=False).search([
-                ('user_ids', 'in', self.ids)]).filtered(
-                    lambda x: len(x.user_ids) == 1).unlink()
+                ('user_ids', 'in', self.ids)]).with_context(
+                    active_test=True).filtered(
+                        lambda x: not x.user_ids - self).unlink()
         return super(ResUsers, self).unlink()
 
     @api.multi
@@ -28,7 +29,8 @@ class ResUsers(models.Model):
         if active is not None:
             self.env['ir.ui.view'].sudo().with_context(
                 active_test=False).search([
-                    ('user_ids', 'in', self.ids)]).filtered(
-                        lambda x: len(x.user_ids) == 1).write({
-                            'active': active})
+                    ('user_ids', 'in', self.ids)]).with_context(
+                        active_test=True).filtered(
+                            lambda x: not x.user_ids - self).write({
+                                'active': active})
         return super(ResUsers, self).write(vals)

@@ -137,6 +137,11 @@ class TestBaseViewInheritanceExtension(TransactionCase):
         user1 = model_res_users.create({'login': 'user1', 'name': 'user1'})
         user2 = model_res_users.create({'login': 'user2', 'name': 'user2'})
         user3 = model_res_users.create({'login': 'user3', 'name': 'user3'})
+        user4 = model_res_users.create({
+            'login': 'user4',
+            'name': 'user4',
+            'active': False,
+        })
         view1 = self.env.ref('base.view_partner_form')
         view2 = model_ir_ui_view.create({
             'name': 'view2',
@@ -163,7 +168,7 @@ class TestBaseViewInheritanceExtension(TransactionCase):
             'model': 'res.partner',
             'inherit_id': view1.id,
             'arch': '<div></div>',
-            'user_ids': [(6, False, user3.ids)],
+            'user_ids': [(6, False, user3.ids + user4.ids)],
         })
         # delete user2, make sure that only view2 is deleted
         self.assertTrue(view1.exists())
