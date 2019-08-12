@@ -13,10 +13,11 @@ class ResUsers(models.Model):
         Finds any views assigned specifically to this user and deletes them.
         """
         self.env['ir.ui.view'].sudo().with_context(
-            active_test=False).search([
-                ('user_ids', 'in', self.ids)]).with_context(
-                    active_test=True).filtered(
-                        lambda x: not x.user_ids - self).unlink()
+            active_test=False,
+        ).search([
+            ('user_ids', 'in', self.ids)]).filtered(
+                lambda x: not x.user_ids - self,
+            ).unlink()
         return super(ResUsers, self).unlink()
 
     @api.multi
@@ -28,9 +29,9 @@ class ResUsers(models.Model):
         active = vals.get('active')
         if active is not None:
             self.env['ir.ui.view'].sudo().with_context(
-                active_test=False).search([
-                    ('user_ids', 'in', self.ids)]).with_context(
-                        active_test=True).filtered(
-                            lambda x: not x.user_ids - self).write({
-                                'active': active})
+                active_test=False,
+            ).search([
+                ('user_ids', 'in', self.ids)]).filtered(
+                    lambda x: not x.user_ids - self,
+                ).write({'active': active})
         return super(ResUsers, self).write(vals)
