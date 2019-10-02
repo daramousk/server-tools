@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2017 Tecnativa - Jairo Llopis
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
@@ -7,26 +6,12 @@ from contextlib import contextmanager
 from threading import current_thread
 from odoo import api, models, SUPERUSER_ID
 from odoo.exceptions import AccessDenied
-from odoo.service import wsgi_server
 
 _logger = logging.getLogger(__name__)
 
 
 class ResUsers(models.Model):
     _inherit = "res.users"
-
-    # HACK https://github.com/odoo/odoo/issues/24183
-    # TODO Remove in v12, and use normal odoo.http.request to get details
-    @api.model_cr
-    def _register_hook(self):
-        """🐒-patch XML-RPC controller to know remote address."""
-        original_fn = wsgi_server.application_unproxied
-
-        def _patch(environ, start_response):
-            current_thread().environ = environ
-            return original_fn(environ, start_response)
-
-        wsgi_server.application_unproxied = _patch
 
     # Helpers to track authentication attempts
     @classmethod
@@ -124,7 +109,7 @@ class ResUsers(models.Model):
         )
 
     @api.model
-    def check_credentials(self, password):
+    def _check_credentials(self, password):
         """This is the most important and specific auth check method.
 
         When we get here, it means that Odoo already checked the user exists
@@ -147,4 +132,4 @@ class ResUsers(models.Model):
                 error.reason = "banned"
                 raise error
             # Continue with other auth systems
-            return super(ResUsers, self).check_credentials(password)
+            return super(ResUsers, self)._check_credentials(password)

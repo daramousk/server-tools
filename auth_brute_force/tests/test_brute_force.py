@@ -1,16 +1,15 @@
-# -*- coding: utf-8 -*-
 # Copyright 2017 Tecnativa - Jairo Llopis
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
 from threading import current_thread
-from urllib import urlencode
+from urllib.parse import urlencode
 
 from decorator import decorator
 from mock import patch
 from werkzeug.utils import redirect
 
 from odoo import http
-from odoo.tests.common import at_install, HttpCase, post_install
+from odoo.tests.common import HttpCase, tagged
 from odoo.tools import mute_logger
 
 from ..models import res_authentication_attempt, res_users
@@ -105,8 +104,7 @@ def patch_cursor(func):
     return wrap
 
 
-@at_install(False)
-@post_install(True)
+@tagged('post_install', '-at_install')
 # Skip CSRF validation on tests
 @patch(http.__name__ + ".WebRequest.validate_csrf", return_value=True)
 # Skip specific browser forgery on redirections
